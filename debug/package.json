@@ -1,0 +1,6 @@
+{
+    "private": true,
+    "dependencies": {
+      "g-scheduler": "file:../dist"
+    }
+  }
