@@ -1,16 +1,43 @@
 import { Task, Cancel } from "./common";
 
 export class BalanceScheduler {
-  constructor() {
-    this.#status = Status.init;
+  constructor(exceptionHandler?: (e: any) => any) {
+    this.#exceptionHandler = exceptionHandler;
+    this.#status = Status.sleep;
     this.#taskSet = new Set();
   }
 
-  async start(exceptionHandler?: (e: any) => any) {
-    if (this.#status === Status.init) {
-      this.#status = Status.running as Status; //for `this.#status === Status.over`
+  join(task: Task): Cancel;
+  join(task: () => Task): Cancel;
+  join(task: Task | (() => Task)): Cancel {
+    if (this.#status === Status.over) {
+      throw this.#status;
+    }
 
-      while (true) {
+    const _task = task instanceof Function ? task() : task;
+
+    this.#taskSet.add(_task);
+
+    if (this.#status === Status.sleep) {
+      this.start();
+    }
+
+    return () => this.#taskSet.delete(_task);
+  }
+
+  stop() {
+    if (this.#status === Status.over) {
+      throw this.#status;
+    } else {
+      this.#taskSet.clear();
+      this.#status = Status.over;
+    }
+  }
+
+  private async start() {
+    if (this.#status === Status.sleep) {
+      this.#status = Status.run as Status; //for `this.#status === Status.over`
+      do {
         for (const task of this.#taskSet) {
           if (this.#status === Status.over) {
             break;
@@ -23,45 +50,29 @@ export class BalanceScheduler {
             }
           } catch (e) {
             this.#taskSet.delete(task);
-            if (exceptionHandler) {
-              exceptionHandler(e);
+            if (this.#exceptionHandler) {
+              this.#exceptionHandler(e);
             } else {
               this.stop();
               throw e;
             }
           }
         }
-      }
+      } while (0 < this.#taskSet.size);
+
+      this.#status = Status.sleep;
     } else {
       throw this.#status;
     }
   }
 
-  stop() {
-    if (this.#status === Status.over) {
-      throw this.#status;
-    } else {
-      this.#taskSet.clear();
-      this.#status = Status.over;
-    }
-  }
-
-  join(task: Task): Cancel;
-  join(task: () => Task): Cancel;
-  join(task: Task | (() => Task)): Cancel {
-    const _task = task instanceof Function ? task() : task;
-
-    this.#taskSet.add(_task);
-
-    return () => this.#taskSet.delete(_task);
-  }
-
+  #exceptionHandler?: (e: any) => any;
   #status: Status;
   #taskSet: Set<Task>;
 }
 
 enum Status {
-  init,
-  running,
+  sleep,
+  run,
   over,
 }

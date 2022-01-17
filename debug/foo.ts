@@ -8,7 +8,6 @@ scheduler.join(async function* () {
     yield;
   }
 }, 0);
-scheduler.start();
 scheduler.join(function* () {
   console.log(111);
   yield;
@@ -17,4 +16,4 @@ scheduler.join(function* () {
   console.log(3333);
   yield;
   console.log(444);
-}, 100);
+}, 1);
