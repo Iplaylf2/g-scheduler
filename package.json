@@ -1,6 +1,6 @@
 {
   "name": "g-scheduler",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Scheduler base on generator.",
   "main": "./g-scheduler.js",
   "types": "./g-scheduler.d.ts",
